@@ -34,3 +34,4 @@ ioServer.on("connection", (socket) => {
 setInterval(() => {
   ioServer.emit("hello", "world")
 },1000)
+export default app;
