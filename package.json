@@ -6,7 +6,9 @@
   },
   "dependencies": {
     "hono": "^4.6.15",
-    "socket.io": "^4.8.1"
+    "socket.io": "^4.8.1",
+    "@hono/node-server": "^1.13.7",
+    "@hono/node-ws": "^1.0.4"
   },
   "devDependencies": {
     "@cloudflare/workers-types": "^4.20241218.0",
