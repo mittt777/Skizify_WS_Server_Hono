@@ -1,78 +1,36 @@
+// server
+import { serve } from '@hono/node-server';
 import { Hono } from 'hono';
-import { cors } from 'hono/cors';
-import { Socket } from 'socket.io';
-import http from 'http';
 import { Server } from 'socket.io';
-import { UserManager } from './managers/UserManager';
-
+import { Server as HttpServer } from 'http';
 const app = new Hono();
 
-// Enable CORS
-app.use('*', cors());
-
-// Parse JSON bodies
-app.use('*', async (c, next) => {
-  await c.req.parseBody();
-  await next();
+app.get('/', (c) => {
+  return c.text('Hello Hono!');
 });
 
-// Middleware for logging
-app.use('*', async (c, next) => {
-  console.log(`${new Date().toISOString()} - ${c.req.method} ${c.req.url}`);
-  console.log('Headers:', c.req.header);
-  await next();
-});
-
-app.get('/health', (c) => {
-  return c.json({ status: 'ok' });
-});
-
-const server = http.createServer(async (req, res) => {
-  try {
-    const response = await app.fetch(req as any, res as any);
-    // Assuming app.fetch handles the response
-  } catch (error) {
-    console.error(error);
-    res.statusCode = 500;
-    res.end('Internal Server Error');
-  }
-});
-
-const io = new Server(server, {
-  cors: {
-    origin: '*',
+const server = serve(
+  {
+    fetch: app.fetch,
+    port: 8080,
   },
-  connectionStateRecovery: {},
+  (info) => {
+    console.log(`Server is running: http://${info.address}:${info.port}`);
+  }
+);
+
+const ioServer = new Server(server as HttpServer, {
+  path: '/ws',
+  serveClient: false,
 });
+ioServer.on("error", (err) => {
+  console.log(err)
+})
 
-const userManager = new UserManager();
+ioServer.on("connection", (socket) => {
+  console.log("client connected")
+})
 
-io.on('connection', (socket: Socket) => {
-  console.log('Connection Established');
-
-  socket.emit('debug', {
-    message: 'Connected successfully',
-    socketId: socket.id,
-    transport: socket.conn.transport.name,
-  });
-
-  socket.on(
-    'sessiondetails',
-    ({ userId, meetingId }: { userId: string; meetingId: string }) => {
-      console.log('We are creating room');
-      console.log('User Joined the RoomId', meetingId);
-      userManager.createRoom(userId, meetingId, socket, io);
-
-      socket.on('disconnect', () => {
-        console.log('User disconnected');
-        userManager.removeUser(meetingId, userId);
-      });
-    }
-  );
-});
-
-const PORT = 80;
-
-server.listen(PORT, () => {
-  console.log(`Server is listening on port ${PORT}`);
-});
+setInterval(() => {
+  ioServer.emit("hello", "world")
+},1000)
